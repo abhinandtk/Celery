@@ -5,6 +5,8 @@ from .forms import MessageCreateForm
 from django.contrib import messages
 from django.core.mail import EmailMessage
 import threading
+from .tasks import *
+from django.contrib.auth.decorators import user_passes_test
 # Create your views here.
 @login_required
 def messageboard_view(request):
@@ -14,7 +16,7 @@ def messageboard_view(request):
     if request.method == 'POST':
         if request.user in messageboard.subscribers.all():
             form = MessageCreateForm(request.POST)
-            if form.is_valid:
+            if form.is_valid():
                 message = form.save(commit=False)
                 message.author = request.user
                 message.messageboard = messageboard
@@ -49,22 +51,24 @@ def send_email(message):
      
             subject = f'New Message from {message.author.profile.name}'
             body = f'{message.author.profile.name}: {message.body}\n\nRegards from\nMy Message Board'
-            email_thread=threading.Thread(target=send_email_thread,args=(subject,body,subscriber))
-            email_thread.start()
-def send_email_thread(subject,body,subscriber):
-    try:
-        email = EmailMessage(
-            subject,
-            body,
-            to=[subscriber.email]
-        )
+            send_email_task.delay(subject,body,subscriber.email)
+            
+#             email_thread=threading.Thread(target=send_email_thread,args=(subject,body,subscriber))
+#             email_thread.start()
+# def send_email_thread(subject,body,subscriber):
+#     try:
+#         email = EmailMessage(
+#             subject,
+#             body,
+#             to=[subscriber.email]
+#         )
 
-        email.send(fail_silently=False)
-        print(f"Email sent successfully to {subscriber.email}")
+#         email.send(fail_silently=False)
+#         print(f"Email sent successfully to {subscriber.email}")
 
-    except Exception as e:
-        print(f"❌ Failed to send email to {subscriber.email}")
-        print(f"Error: {str(e)}")
+#     except Exception as e:
+#         print(f"❌ Failed to send email to {subscriber.email}")
+#         print(f"Error: {str(e)}")
 
 
 
@@ -78,3 +82,11 @@ def send_email_thread(subject,body,subscriber):
 # def send_email_thread(subject, body, subscriber):        
 #     email = EmailMessage(subject, body, to=[subscriber.email])
 #     email.send()
+
+def is_staff(user):
+    return user.is_staff
+
+
+@user_passes_test(is_staff)
+def newsletter(request):
+    return render(request,"a_messageboard/newsletter.html")

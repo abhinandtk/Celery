@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'a_home',
     'a_users',
     'a_message_board',
+    'django_celery_results',
+    'django_celery_beat',
     
     # Third party
     'django_browser_reload',
@@ -165,3 +167,8 @@ ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
 
 ACCOUNT_LOGIN_METHODS = {'email', 'username'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ 
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_RESULT_EXTENDED = True
